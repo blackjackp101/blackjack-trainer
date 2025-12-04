@@ -274,3 +274,104 @@ input[type="number"]:focus {
   }
 }
 
+/* Running count + dealt cards panel */
+#playCountBox {
+  max-height: 220px;        /* keeps the box from getting too tall */
+  overflow-y: auto;         /* scroll vertically if it gets long */
+}
+
+/* Container holding the "cards dealt" text + cards */
+.play-count-cards {
+  margin-top: 0.5rem;
+}
+
+/* Row of dealt cards: wrap onto new lines instead of overflowing */
+.play-count-card-row {
+  display: flex;
+  flex-wrap: wrap;          /* <<< this is the key */
+  gap: 0.25rem;             /* space between cards */
+  align-items: center;
+}
+
+/* Make sure card chips behave nicely in a flex row */
+.card-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-size: 0.8rem;
+  white-space: nowrap;      /* keeps each card (e.g. "10♣") together */
+}
+
+/* Running count + dealt cards panel */
+#playCountBox {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Container holding the "cards dealt" text + cards */
+.play-count-cards {
+  margin-top: 0.5rem;
+}
+
+/* Row of dealt cards: wrap onto new lines instead of overflowing */
+.play-count-card-row {
+  display: flex;
+  flex-wrap: wrap;       /* key: wrap onto new lines */
+  gap: 0.25rem;
+  align-items: center;
+}
+
+/* Card chips */
+.card-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* Stats box on the right */
+.play-stats-box {
+  margin-top: 0.5rem;
+  max-width: 280px;
+  margin-left: auto;   /* push to the right side of the card */
+}
+
+#playCountBox {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.play-count-cards {
+  margin-top: 0.5rem;
+}
+
+.play-count-card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.card-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.play-stats-box {
+  margin-top: 0.5rem;
+  max-width: 280px;
+  margin-left: auto;
+}

@@ -34,7 +34,22 @@ function shuffle(array) {
   }
 }
 
-// -------- Strategy trainer setup --------
+function buildShoe(numDecks) {
+  let shoe = [];
+  for (let i = 0; i < numDecks; i++) {
+    shoe = shoe.concat(buildDeck());
+  }
+  shuffle(shoe);
+  return shoe;
+}
+
+function hiLoValue(rank) {
+  if (["2", "3", "4", "5", "6"].includes(rank)) return 1;
+  if (["7", "8", "9"].includes(rank)) return 0;
+  return -1;
+}
+
+// -------- Strategy trainer --------
 const handTypeSelect = document.getElementById("handType");
 const playerValueSelect = document.getElementById("playerValue");
 const dealerUpcardSelect = document.getElementById("dealerUpcard");
@@ -45,7 +60,6 @@ const strategyResultBox = document.getElementById("strategy-result");
 const strategyFeedback = document.getElementById("strategy-feedback");
 const strategyExplanation = document.getElementById("strategy-explanation");
 
-// populate player values depending on hand type
 function populatePlayerValues() {
   const type = handTypeSelect.value;
   playerValueSelect.innerHTML = "";
@@ -89,18 +103,15 @@ function populatePlayerValues() {
 handTypeSelect.addEventListener("change", populatePlayerValues);
 populatePlayerValues();
 
-// Helper: parse dealer upcard to a numeric-ish value
 function dealerValue(card) {
   if (card === "A") return 11;
   return parseInt(card, 10);
 }
 
-// Strategy logic: returns { action, reason }
 function getRecommendation(handType, playerValue, dealerUp) {
   const d = dealerValue(dealerUp);
 
   if (handType === "pair") {
-    // pair logic
     switch (playerValue) {
       case "A,A":
         return { action: "Split", reason: "Always split aces to start two strong hands." };
@@ -175,34 +186,23 @@ function getRecommendation(handType, playerValue, dealerUp) {
     }
   }
 
-  // Hard hands
   const hardTotal = parseInt(playerValue, 10);
 
-  // Always hit 11 or less
   if (hardTotal <= 11) {
     return { action: "Hit", reason: "You cannot bust with 11 or less, so hitting is always safe." };
   }
 
-  // 12–16: stand vs 2–6, otherwise hit
   if (hardTotal >= 12 && hardTotal <= 16) {
     if (d >= 2 && d <= 6) {
-      return {
-        action: "Stand",
-        reason: "Let a weak dealer (2–6) draw and potentially bust while you hold your total.",
-      };
+      return { action: "Stand", reason: "Let a weak dealer (2–6) draw and potentially bust while you hold your total." };
     }
-    return {
-      action: "Hit",
-      reason: "Dealer 7–Ace is strong; improve your weak 12–16 by hitting.",
-    };
+    return { action: "Hit", reason: "Dealer 7–Ace is strong; improve your weak 12–16 by hitting." };
   }
 
-  // 17+ stand
   if (hardTotal >= 17) {
     return { action: "Stand", reason: "Hard 17+ is strong enough; hitting risks busting too often." };
   }
 
-  // Fallback
   return { action: "Hit", reason: "When in doubt with a low total, hitting is safer." };
 }
 
@@ -224,7 +224,7 @@ checkMoveBtn.addEventListener("click", () => {
   }
 });
 
-// -------- Card counting trainer --------
+// -------- Counting trainer --------
 const startDrillBtn = document.getElementById("startDrillBtn");
 const nextCardBtn = document.getElementById("nextCardBtn");
 const showCountBtn = document.getElementById("showCountBtn");
@@ -239,12 +239,6 @@ let countingDeck = [];
 let drillCards = [];
 let drillIndex = 0;
 let runningCount = 0;
-
-function hiLoValue(rank) {
-  if (["2", "3", "4", "5", "6"].includes(rank)) return 1;
-  if (["7", "8", "9"].includes(rank)) return 0;
-  return -1; // 10, J, Q, K, A
-}
 
 function startDrill() {
   countingDeck = buildDeck();
@@ -311,90 +305,163 @@ function checkCountGuess() {
   }
 }
 
-// Wire up counting events
 startDrillBtn.addEventListener("click", startDrill);
 nextCardBtn.addEventListener("click", showNextCard);
 showCountBtn.addEventListener("click", showCurrentCount);
 checkCountBtn.addEventListener("click", checkCountGuess);
 
-// -------- Play vs Dealer game --------
+// -------- Play vs Dealer (with split, running count, stats) --------
 const newHandBtn = document.getElementById("newHandBtn");
 const hitBtn = document.getElementById("hitBtn");
 const standBtn = document.getElementById("standBtn");
+const splitBtn = document.getElementById("splitBtn");
 
 const dealerCardsEl = document.getElementById("dealerCards");
-const playerCardsEl = document.getElementById("playerCards");
 const dealerTotalEl = document.getElementById("dealerTotal");
-const playerTotalEl = document.getElementById("playerTotal");
+
+const playerHandInfoEl = document.getElementById("playerHandInfo");
+const hand1Wrapper = document.getElementById("hand1Wrapper");
+const hand2Wrapper = document.getElementById("hand2Wrapper");
+const playerCards1El = document.getElementById("playerCards1");
+const playerTotal1El = document.getElementById("playerTotal1");
+const playerCards2El = document.getElementById("playerCards2");
+const playerTotal2El = document.getElementById("playerTotal2");
+
 const playResultBox = document.getElementById("playResult");
 const playFeedback = document.getElementById("playFeedback");
 
+const shoeDecksSelect = document.getElementById("shoeDecks");
+const revealPlayCountBtn = document.getElementById("revealPlayCountBtn");
+const resetPlayCountBtn = document.getElementById("resetPlayCountBtn");
+const playCountBox = document.getElementById("playCountBox");
+const playCountText = document.getElementById("playCountText");
+const playCountCardsEl = document.getElementById("playCountCards");
+
+const playStatsText = document.getElementById("playStatsText");
+
 let gameDeck = [];
-let playerHand = [];
 let dealerHand = [];
+let playerHands = [];   // array of hands
+let currentHandIndex = 0;
 let gameOver = false;
 let dealerHoleCardHidden = true;
+let splitUsed = false;
 
-// Convert rank to numeric for hand value
+let playRunningCount = 0;
+let playCountVisible = false;
+let selectedDecks = parseInt(shoeDecksSelect.value, 10) || 6;
+let playDealtCards = [];
+
+// Stats
+let totalHandsPlayed = 0;
+let totalWins = 0;
+let totalLosses = 0;
+let totalPushes = 0;
+
 function rankToValue(rank) {
   if (["J", "Q", "K"].includes(rank)) return 10;
-  if (rank === "A") return 11; // initially count as 11, adjust later
+  if (rank === "A") return 11;
   return parseInt(rank, 10);
 }
 
-// Compute hand total with Ace adjustment
 function handValue(hand) {
   let total = 0;
   let aces = 0;
-
   for (const card of hand) {
     const val = rankToValue(card.rank);
     total += val;
     if (card.rank === "A") aces++;
   }
-
   while (total > 21 && aces > 0) {
-    total -= 10; // turn an Ace from 11 -> 1
+    total -= 10;
     aces--;
   }
-
   return total;
 }
 
-function drawCard() {
-  if (gameDeck.length === 0) {
-    gameDeck = buildDeck();
-    shuffle(gameDeck);
-  }
-  return gameDeck.pop();
+function updateStatsUI() {
+  if (!playStatsText) return;
+  const decided = totalWins + totalLosses;
+  const winRate = decided > 0 ? Math.round((totalWins / decided) * 100) : 0;
+  playStatsText.textContent =
+    `Hands: ${totalHandsPlayed} | ` +
+    `Wins: ${totalWins} | Losses: ${totalLosses} | Pushes: ${totalPushes} | ` +
+    `Win rate: ${winRate}%`;
 }
 
-function renderHands() {
+function updatePlayCountUI() {
+  if (!playCountVisible) return;
+
+  playCountBox.classList.remove("hidden");
+
+  const val = playRunningCount;
+  const cardsDealt = playDealtCards.length;
+  const totalCardsInShoe = selectedDecks * 52;
+  const cardsRemaining = gameDeck.length;
+  let decksRemainingText = "";
+
+  if (selectedDecks >= 2 && totalCardsInShoe > 0) {
+    const decksRemaining = cardsRemaining / 52;
+    decksRemainingText = ` | Approx decks remaining: ${decksRemaining.toFixed(1)}`;
+  }
+
+  playCountText.textContent =
+    `Running count for this shoe: ${val > 0 ? "+" + val : val} ` +
+    `(Hi-Lo) | Cards dealt: ${cardsDealt}${decksRemainingText}`;
+
+  playCountCardsEl.innerHTML = "";
+
+  if (playDealtCards.length === 0) {
+    const empty = document.createElement("p");
+    empty.textContent = "No cards dealt yet in this shoe.";
+    playCountCardsEl.appendChild(empty);
+    return;
+  }
+
+  const label = document.createElement("p");
+  label.textContent = "Cards dealt in this shoe (in order):";
+  playCountCardsEl.appendChild(label);
+
+  const row = document.createElement("div");
+  row.className = "play-count-card-row";
+
+  playDealtCards.forEach((card) => {
+    const span = document.createElement("span");
+    span.className = "card-chip";
+    span.textContent = `${card.rank}${card.suit}`;
+    row.appendChild(span);
+  });
+
+  playCountCardsEl.appendChild(row);
+}
+
+function drawFromShoe() {
+  if (gameDeck.length === 0) {
+    gameDeck = buildShoe(selectedDecks);
+    playRunningCount = 0;
+    playDealtCards = [];
+    updatePlayCountUI();
+  }
+  const card = gameDeck.pop();
+  playRunningCount += hiLoValue(card.rank);
+  playDealtCards.push(card);
+  updatePlayCountUI();
+  return card;
+}
+
+function renderDealer() {
   dealerCardsEl.innerHTML = "";
-  playerCardsEl.innerHTML = "";
 
   dealerHand.forEach((card, index) => {
     const span = document.createElement("span");
     span.className = "card-chip";
-
     if (index === 1 && dealerHoleCardHidden && !gameOver) {
       span.textContent = "??";
     } else {
       span.textContent = `${card.rank}${card.suit}`;
     }
-
     dealerCardsEl.appendChild(span);
   });
-
-  playerHand.forEach((card) => {
-    const span = document.createElement("span");
-    span.className = "card-chip";
-    span.textContent = `${card.rank}${card.suit}`;
-    playerCardsEl.appendChild(span);
-  });
-
-  const playerTotal = handValue(playerHand);
-  playerTotalEl.textContent = `Total: ${playerTotal}`;
 
   if (dealerHoleCardHidden && !gameOver && dealerHand.length >= 2) {
     const visibleCard = dealerHand[0];
@@ -406,67 +473,167 @@ function renderHands() {
   }
 }
 
-function resetGameState() {
-  if (gameDeck.length < 15) {
-    gameDeck = buildDeck();
-    shuffle(gameDeck);
+function renderPlayerHands() {
+  const hand1 = playerHands[0] || [];
+  const hand2 = playerHands[1] || [];
+
+  if (playerHands.length === 1) {
+    playerHandInfoEl.textContent = "Single hand";
+  } else {
+    playerHandInfoEl.textContent = `Playing split hands (active: Hand ${currentHandIndex + 1})`;
   }
 
-  playerHand = [];
+  playerCards1El.innerHTML = "";
+  hand1.forEach((card) => {
+    const span = document.createElement("span");
+    span.className = "card-chip";
+    span.textContent = `${card.rank}${card.suit}`;
+    playerCards1El.appendChild(span);
+  });
+  playerTotal1El.textContent = hand1.length
+    ? `Total: ${handValue(hand1)}`
+    : "Total: —";
+
+  if (playerHands.length > 1) {
+    hand2Wrapper.classList.remove("hidden");
+    playerCards2El.innerHTML = "";
+    hand2.forEach((card) => {
+      const span = document.createElement("span");
+      span.className = "card-chip";
+      span.textContent = `${card.rank}${card.suit}`;
+      playerCards2El.appendChild(span);
+    });
+    playerTotal2El.textContent = hand2.length
+      ? `Total: ${handValue(hand2)}`
+      : "Total: —";
+  } else {
+    hand2Wrapper.classList.add("hidden");
+    playerCards2El.innerHTML = "";
+    playerTotal2El.textContent = "Total: —";
+  }
+
+  hand1Wrapper.classList.toggle("active-hand", currentHandIndex === 0);
+  hand2Wrapper.classList.toggle("active-hand", currentHandIndex === 1);
+}
+
+function renderHands() {
+  renderDealer();
+  renderPlayerHands();
+}
+
+function canSplitCurrentHand() {
+  if (gameOver) return false;
+  if (splitUsed) return false;
+  if (playerHands.length !== 1) return false;
+  const hand = playerHands[0];
+  if (!hand || hand.length !== 2) return false;
+  return hand[0].rank === hand[1].rank;
+}
+
+function updateSplitButtonState() {
+  splitBtn.disabled = !canSplitCurrentHand();
+}
+
+function resetRoundState() {
+  playerHands = [[]];
+  currentHandIndex = 0;
   dealerHand = [];
   gameOver = false;
   dealerHoleCardHidden = true;
+  splitUsed = false;
 
   playResultBox.classList.add("hidden");
   playFeedback.textContent = "";
 
+  if (!playCountVisible) {
+    playCountBox.classList.add("hidden");
+    playCountText.textContent = "";
+    playCountCardsEl.innerHTML = "";
+  }
+
   hitBtn.disabled = false;
   standBtn.disabled = false;
+  updateSplitButtonState();
+  renderHands();
 }
 
 function dealNewHand() {
+  selectedDecks = parseInt(shoeDecksSelect.value, 10) || 6;
+
   if (gameDeck.length < 15) {
-    gameDeck = buildDeck();
-    shuffle(gameDeck);
+    gameDeck = buildShoe(selectedDecks);
+    playRunningCount = 0;
+    playDealtCards = [];
+    updatePlayCountUI();
   }
 
-  resetGameState();
+  resetRoundState();
 
-  playerHand.push(drawCard());
-  dealerHand.push(drawCard());
-  playerHand.push(drawCard());
-  dealerHand.push(drawCard());
+  playerHands[0].push(drawFromShoe());
+  dealerHand.push(drawFromShoe());
+  playerHands[0].push(drawFromShoe());
+  dealerHand.push(drawFromShoe());
 
   renderHands();
+  updateSplitButtonState();
 
-  const playerTotal = handValue(playerHand);
-  if (playerTotal === 21) {
+  const total = handValue(playerHands[0]);
+  if (total === 21) {
     dealerHoleCardHidden = false;
     gameOver = true;
     renderHands();
     playResultBox.classList.remove("hidden");
     playFeedback.textContent = "Blackjack! You have 21 on the deal.";
+
+    totalHandsPlayed += 1;
+    totalWins += 1;
+    updateStatsUI();
+
     hitBtn.disabled = true;
     standBtn.disabled = true;
+    splitBtn.disabled = true;
   }
+}
+
+function splitHand() {
+  if (!canSplitCurrentHand()) return;
+
+  const original = playerHands[0];
+  const secondCard = original.pop();
+  const newHand = [secondCard];
+
+  original.push(drawFromShoe());
+  newHand.push(drawFromShoe());
+
+  playerHands = [original, newHand];
+  currentHandIndex = 0;
+  splitUsed = true;
+
+  updateSplitButtonState();
+  renderHands();
 }
 
 function playerHit() {
   if (gameOver) return;
 
-  playerHand.push(drawCard());
+  const hand = playerHands[currentHandIndex];
+  hand.push(drawFromShoe());
   renderHands();
 
-  const total = handValue(playerHand);
+  const total = handValue(hand);
   if (total > 21) {
-    dealerHoleCardHidden = false;
-    gameOver = true;
-    renderHands();
-    playResultBox.classList.remove("hidden");
-    playFeedback.textContent = "You bust! Dealer wins.";
-    hitBtn.disabled = true;
-    standBtn.disabled = true;
+    playFeedback.textContent = `Hand ${currentHandIndex + 1} busts with ${total}.`;
+    moveToNextHandOrDealer();
   }
+}
+
+function playerStand() {
+  if (gameOver) return;
+
+  const hand = playerHands[currentHandIndex];
+  const total = handValue(hand);
+  playFeedback.textContent = `Hand ${currentHandIndex + 1} stands on ${total}.`;
+  moveToNextHandOrDealer();
 }
 
 function dealerPlay() {
@@ -475,46 +642,120 @@ function dealerPlay() {
 
   let dealerTotal = handValue(dealerHand);
   while (dealerTotal < 17) {
-    dealerHand.push(drawCard());
+    dealerHand.push(drawFromShoe());
     dealerTotal = handValue(dealerHand);
     renderHands();
   }
 }
 
-function resolveHand() {
-  if (gameOver) return;
-
-  dealerPlay();
-
-  const playerTotal = handValue(playerHand);
+function resolveAfterDealer() {
   const dealerTotal = handValue(dealerHand);
+  const msgs = [];
+  const handsThisRound = playerHands.length;
 
-  gameOver = true;
+  totalHandsPlayed += handsThisRound;
+
+  playerHands.forEach((hand, index) => {
+    const total = handValue(hand);
+
+    if (total > 21) {
+      totalLosses++;
+      msgs.push(`Hand ${index + 1}: busts with ${total}. Dealer wins.`);
+    } else if (dealerTotal > 21) {
+      totalWins++;
+      msgs.push(`Hand ${index + 1}: dealer busts with ${dealerTotal}. You win with ${total}.`);
+    } else if (total > dealerTotal) {
+      totalWins++;
+      msgs.push(`Hand ${index + 1}: you win ${total} vs dealer ${dealerTotal}.`);
+    } else if (total < dealerTotal) {
+      totalLosses++;
+      msgs.push(`Hand ${index + 1}: dealer wins ${dealerTotal} vs your ${total}.`);
+    } else {
+      totalPushes++;
+      msgs.push(`Hand ${index + 1}: push at ${total}.`);
+    }
+  });
+
   playResultBox.classList.remove("hidden");
-
-  if (dealerTotal > 21) {
-    playFeedback.textContent = `Dealer busts with ${dealerTotal}. You win with ${playerTotal}!`;
-  } else if (dealerTotal > playerTotal) {
-    playFeedback.textContent = `Dealer wins ${dealerTotal} vs your ${playerTotal}.`;
-  } else if (dealerTotal < playerTotal) {
-    playFeedback.textContent = `You win! ${playerTotal} vs dealer's ${dealerTotal}.`;
-  } else {
-    playFeedback.textContent = `Push: both you and the dealer have ${playerTotal}.`;
-  }
-
+  playFeedback.innerHTML = msgs.join(" ");
+  gameOver = true;
   hitBtn.disabled = true;
   standBtn.disabled = true;
+  splitBtn.disabled = true;
+
+  updateStatsUI();
 }
 
-// Wire up play vs dealer buttons
-newHandBtn.addEventListener("click", () => {
-  gameDeck = gameDeck.length ? gameDeck : buildDeck();
-  if (!gameDeck.length) {
-    gameDeck = buildDeck();
+function moveToNextHandOrDealer() {
+  const numHands = playerHands.length;
+  let nextIndex = currentHandIndex + 1;
+
+  while (nextIndex < numHands && handValue(playerHands[nextIndex]) > 21) {
+    nextIndex++;
   }
-  shuffle(gameDeck);
-  dealNewHand();
+
+  if (nextIndex < numHands) {
+    currentHandIndex = nextIndex;
+    renderHands();
+  } else {
+    const anyLive = playerHands.some((hand) => handValue(hand) <= 21);
+    if (anyLive) {
+      dealerPlay();
+      resolveAfterDealer();
+    } else {
+      // all hands busted
+      dealerHoleCardHidden = false;
+      renderHands();
+      playResultBox.classList.remove("hidden");
+      playFeedback.textContent = "All your hands bust. Dealer wins.";
+
+      const handsThisRound = playerHands.length;
+      totalHandsPlayed += handsThisRound;
+      totalLosses += handsThisRound;
+      updateStatsUI();
+
+      gameOver = true;
+      hitBtn.disabled = true;
+      standBtn.disabled = true;
+      splitBtn.disabled = true;
+    }
+  }
+}
+
+function togglePlayCountVisibility() {
+  playCountVisible = !playCountVisible;
+
+  if (playCountVisible) {
+    revealPlayCountBtn.textContent = "Hide running count";
+    updatePlayCountUI();
+  } else {
+    playCountBox.classList.add("hidden");
+    playCountText.textContent = "";
+    playCountCardsEl.innerHTML = "";
+    revealPlayCountBtn.textContent = "Show running count";
+  }
+}
+
+function resetPlayCount() {
+  playRunningCount = 0;
+  playDealtCards = [];
+  updatePlayCountUI();
+}
+
+shoeDecksSelect.addEventListener("change", () => {
+  selectedDecks = parseInt(shoeDecksSelect.value, 10) || 6;
+  gameDeck = buildShoe(selectedDecks);
+  playRunningCount = 0;
+  playDealtCards = [];
+  updatePlayCountUI();
 });
 
+newHandBtn.addEventListener("click", dealNewHand);
 hitBtn.addEventListener("click", playerHit);
-standBtn.addEventListener("click", resolveHand);
+standBtn.addEventListener("click", playerStand);
+splitBtn.addEventListener("click", splitHand);
+revealPlayCountBtn.addEventListener("click", togglePlayCountVisibility);
+resetPlayCountBtn.addEventListener("click", resetPlayCount);
+
+revealPlayCountBtn.textContent = "Show running count";
+updateStatsUI();

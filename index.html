@@ -18,6 +18,7 @@
       <button class="tab-button" data-tab="strategy">Basic Strategy Trainer</button>
       <button class="tab-button" data-tab="counting">Card Counting Trainer</button>
       <button class="tab-button" data-tab="play">Play vs Dealer</button>
+      <button class="tab-button" data-tab="about">About</button>
     </nav>
 
     <main class="tab-container">
@@ -166,15 +167,26 @@
       <section id="play" class="tab-section">
         <h2>Play vs Dealer</h2>
         <p>
-          Practice full blackjack hands against a dealer. This uses a single shuffled deck.
-          Dealer hits until 17 or more. No betting yet — just pure decision practice.
+          Practice full blackjack hands against a dealer. Choose how many decks are in the shoe so you can
+          practice keeping a real Hi-Lo running count in your head. You can also split pairs into two hands.
         </p>
 
         <div class="card play-card">
+          <div class="form-row">
+            <label for="shoeDecks">Number of decks in shoe</label>
+            <select id="shoeDecks">
+              <option value="1">1 deck (single deck)</option>
+              <option value="2">2 decks</option>
+              <option value="4">4 decks</option>
+              <option value="6" selected>6 decks (common shoe)</option>
+            </select>
+          </div>
+
           <div class="button-row">
             <button type="button" id="newHandBtn" class="primary-button">New Hand</button>
             <button type="button" id="hitBtn" class="secondary-button" disabled>Hit</button>
             <button type="button" id="standBtn" class="secondary-button" disabled>Stand</button>
+            <button type="button" id="splitBtn" class="secondary-button" disabled>Split</button>
           </div>
 
           <div class="play-layout">
@@ -183,10 +195,22 @@
               <div id="dealerCards" class="play-hand"></div>
               <p id="dealerTotal" class="play-total">Total: —</p>
             </div>
+
             <div class="play-column">
               <h3>You</h3>
-              <div id="playerCards" class="play-hand"></div>
-              <p id="playerTotal" class="play-total">Total: —</p>
+              <p id="playerHandInfo" class="play-hand-info">Single hand</p>
+              <div id="playerHandsContainer" class="player-hands-container">
+                <div class="player-hand-wrapper active-hand" id="hand1Wrapper">
+                  <h4 id="hand1Label">Hand 1</h4>
+                  <div id="playerCards1" class="play-hand"></div>
+                  <p id="playerTotal1" class="play-total">Total: —</p>
+                </div>
+                <div class="player-hand-wrapper hidden" id="hand2Wrapper">
+                  <h4 id="hand2Label">Hand 2</h4>
+                  <div id="playerCards2" class="play-hand"></div>
+                  <p id="playerTotal2" class="play-total">Total: —</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -194,10 +218,56 @@
             <p id="playFeedback"></p>
           </div>
 
+          <div class="button-row">
+            <button type="button" id="revealPlayCountBtn" class="secondary-button">
+              Show running count
+            </button>
+            <button type="button" id="resetPlayCountBtn" class="secondary-button">
+              Reset running count
+            </button>
+          </div>
+
+          <div id="playCountBox" class="result-box hidden">
+            <p id="playCountText"></p>
+            <div id="playCountCards" class="play-count-cards"></div>
+          </div>
+
+          <div id="playStatsBox" class="result-box play-stats-box">
+            <p id="playStatsText">
+              Hands: 0 | Wins: 0 | Losses: 0 | Pushes: 0 | Win rate: 0%
+            </p>
+          </div>
+
           <p class="hint">
-            Try to apply what you learned in the Basic Strategy Trainer: when in doubt with 12–16 vs a weak dealer card (2–6), lean toward standing.
+            The running count continues from hand to hand for this shoe. Click “Reset running count” if you want
+            to zero it out, or change the number of decks to start a fresh shoe and reset both the deck and count.
           </p>
         </div>
+      </section>
+
+      <!-- ABOUT -->
+      <section id="about" class="tab-section">
+        <h2>About This Trainer</h2>
+        <p>
+          This site is a <strong>practice tool</strong> for learning blackjack, not a gambling site.
+          It’s designed to help you:
+        </p>
+        <ul>
+          <li>Understand the <strong>basic rules</strong> of blackjack (card values, hard/soft hands, pairs).</li>
+          <li>Build good habits using a <strong>simplified basic strategy</strong> trainer.</li>
+          <li>Practice the <strong>Hi-Lo card counting system</strong> with drills and a live running count.</li>
+          <li>Play full rounds against a <strong>simulated dealer</strong>, including splitting pairs and
+              tracking a continuous running count across hands.</li>
+        </ul>
+        <p>
+          The goal is to train your <strong>decision-making and mental counting</strong> so that real blackjack
+          feels slower and easier. There is no real money involved here, and nothing on this site should be
+          taken as a guarantee of profit in a casino. It’s purely for <strong>education and practice.</strong>
+        </p>
+        <p class="hint">
+          Tip: Start with the Basics tab, drill the Hi-Lo count until it feels automatic, then use
+          Play vs Dealer while keeping the count in your head and only revealing it to check your work.
+        </p>
       </section>
     </main>
   </div>
