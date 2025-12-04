@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Blackjack Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <h1>Blackjack Trainer</h1>
+      <p class="subtitle">Learn basic strategy, Hi-Lo counting & practice vs a dealer</p>
+    </header>
+
+    <nav class="tab-nav">
+      <button class="tab-button active" data-tab="basics">Basics</button>
+      <button class="tab-button" data-tab="strategy">Basic Strategy Trainer</button>
+      <button class="tab-button" data-tab="counting">Card Counting Trainer</button>
+      <button class="tab-button" data-tab="play">Play vs Dealer</button>
+    </nav>
+
+    <main class="tab-container">
+      <!-- BASICS -->
+      <section id="basics" class="tab-section active">
+        <h2>Blackjack Basics</h2>
+        <p>Blackjack is a comparing card game between you and the dealer. Your goal is simple:</p>
+        <p class="highlight">Get closer to 21 than the dealer without going over (busting).</p>
+
+        <h3>Card Values</h3>
+        <ul>
+          <li><strong>2–10</strong>: face value (2 = 2, 9 = 9, etc.)</li>
+          <li><strong>J, Q, K</strong>: 10 points each</li>
+          <li><strong>Ace (A)</strong>: 1 or 11 (whichever helps you most without busting)</li>
+        </ul>
+
+        <h3>Hard vs Soft Hands</h3>
+        <ul>
+          <li><strong>Hard hand</strong>: either has no Ace, or the Ace must count as 1 to avoid busting.<br>
+            Example: 10 + 7 = hard 17</li>
+          <li><strong>Soft hand</strong>: includes an Ace that can safely count as 11.<br>
+            Example: A + 7 = soft 18</li>
+        </ul>
+
+        <h3>Pairs</h3>
+        <p>
+          A <strong>pair</strong> is when your first two cards have the same value, such as 8–8 or Q–Q.
+          Some pairs can be <strong>split</strong> into two separate hands.
+        </p>
+
+        <h3>Dealer Rules (typical)</h3>
+        <ul>
+          <li>Dealer must hit (take cards) until at least 17.</li>
+          <li>Dealer usually stands (stops) on all 17s.</li>
+          <li>You act first, then the dealer. If you bust, the dealer wins immediately.</li>
+        </ul>
+
+        <p class="hint">
+          Use the strategy and counting trainers to learn, then the play tab to practice full hands against a dealer.
+        </p>
+      </section>
+
+      <!-- BASIC STRATEGY TRAINER -->
+      <section id="strategy" class="tab-section">
+        <h2>Basic Strategy Trainer (Simplified)</h2>
+        <p>
+          This trainer uses a <strong>simplified</strong> basic strategy chart. Real casinos may have slightly
+          different rules and more detailed charts, but this is good enough to build solid habits.
+        </p>
+
+        <form id="strategy-form" class="card">
+          <div class="form-row">
+            <label for="handType">Hand type</label>
+            <select id="handType">
+              <option value="hard">Hard</option>
+              <option value="soft">Soft</option>
+              <option value="pair">Pair</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="playerValue">Your hand</label>
+            <select id="playerValue"></select>
+          </div>
+
+          <div class="form-row">
+            <label for="dealerUpcard">Dealer up-card</label>
+            <select id="dealerUpcard">
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="A">A</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="playerAction">Your move</label>
+            <select id="playerAction">
+              <option value="Hit">Hit</option>
+              <option value="Stand">Stand</option>
+              <option value="Double">Double</option>
+              <option value="Split">Split</option>
+            </select>
+          </div>
+
+          <button type="button" id="checkMoveBtn" class="primary-button">
+            Check my move
+          </button>
+        </form>
+
+        <div id="strategy-result" class="result-box hidden">
+          <p id="strategy-feedback"></p>
+          <p id="strategy-explanation" class="explanation"></p>
+        </div>
+      </section>
+
+      <!-- CARD COUNTING TRAINER -->
+      <section id="counting" class="tab-section">
+        <h2>Hi-Lo Card Counting Trainer</h2>
+        <p>
+          The <strong>Hi-Lo system</strong> gives each card a value:
+        </p>
+        <ul>
+          <li><strong>2–6</strong> → +1</li>
+          <li><strong>7–9</strong> → 0</li>
+          <li><strong>10, J, Q, K, A</strong> → -1</li>
+        </ul>
+        <p>
+          You keep a <strong>running count</strong> by adding these values as cards are dealt.
+        </p>
+
+        <div class="card">
+          <div class="form-row">
+            <button type="button" id="startDrillBtn" class="primary-button">Start Drill</button>
+          </div>
+
+          <div id="card-display" class="card-display">
+            <p class="label">Current card:</p>
+            <p id="currentCard" class="big-card">—</p>
+          </div>
+
+          <div class="button-row">
+            <button type="button" id="nextCardBtn" class="secondary-button" disabled>Next card</button>
+            <button type="button" id="showCountBtn" class="secondary-button" disabled>Show answer now</button>
+          </div>
+
+          <div id="guess-area" class="guess-area hidden">
+            <label for="countGuess">What is the running count?</label>
+            <input type="number" id="countGuess" />
+            <button type="button" id="checkCountBtn" class="primary-button">Check</button>
+          </div>
+
+          <div id="count-result" class="result-box hidden">
+            <p id="count-feedback"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PLAY VS DEALER -->
+      <section id="play" class="tab-section">
+        <h2>Play vs Dealer</h2>
+        <p>
+          Practice full blackjack hands against a dealer. This uses a single shuffled deck.
+          Dealer hits until 17 or more. No betting yet — just pure decision practice.
+        </p>
+
+        <div class="card play-card">
+          <div class="button-row">
+            <button type="button" id="newHandBtn" class="primary-button">New Hand</button>
+            <button type="button" id="hitBtn" class="secondary-button" disabled>Hit</button>
+            <button type="button" id="standBtn" class="secondary-button" disabled>Stand</button>
+          </div>
+
+          <div class="play-layout">
+            <div class="play-column">
+              <h3>Dealer</h3>
+              <div id="dealerCards" class="play-hand"></div>
+              <p id="dealerTotal" class="play-total">Total: —</p>
+            </div>
+            <div class="play-column">
+              <h3>You</h3>
+              <div id="playerCards" class="play-hand"></div>
+              <p id="playerTotal" class="play-total">Total: —</p>
+            </div>
+          </div>
+
+          <div id="playResult" class="result-box hidden">
+            <p id="playFeedback"></p>
+          </div>
+
+          <p class="hint">
+            Try to apply what you learned in the Basic Strategy Trainer: when in doubt with 12–16 vs a weak dealer card (2–6), lean toward standing.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
